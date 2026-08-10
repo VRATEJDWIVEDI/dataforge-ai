@@ -1,10 +1,14 @@
-import { Button } from "@/components/ui/button"
+import { Routes, Route } from "react-router-dom"
+import RootLayout from "@/layouts/RootLayout"
+import LandingPage from "@/pages/LandingPage"
 
 function App() {
   return (
-    <div className="flex h-screen items-center justify-center">
-      <Button>DataForge AI is alive</Button>
-    </div>
+    <Routes>
+      <Route element={<RootLayout />}>
+        <Route path="/" element={<LandingPage />} />
+      </Route>
+    </Routes>
   )
 }
 
