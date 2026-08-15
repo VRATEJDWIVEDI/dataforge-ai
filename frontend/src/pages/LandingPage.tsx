@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -41,10 +42,12 @@ export default function LandingPage() {
             result using real, computed data, not guesses.
           </p>
 
-          <Button size="lg" className="mt-2 gap-2">
-            Launch Workspace
-            <ArrowRight className="size-4" />
-          </Button>
+          <Link to="/workspace">
+            <Button size="lg" className="mt-2 gap-2">
+              Launch Workspace
+              <ArrowRight className="size-4" />
+            </Button>
+          </Link>
         </motion.div>
 
         {/* Feature Cards */}
