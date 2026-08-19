@@ -18,3 +18,8 @@ def get_dataset(dataset_id: str) -> pd.DataFrame:
     if dataset_id not in _datasets:
         raise KeyError(f"Dataset {dataset_id} not found")
     return _datasets[dataset_id]
+
+def update_dataset(dataset_id: str, df: pd.DataFrame) -> None:
+    if dataset_id not in _datasets:
+        raise KeyError(f"Dataset {dataset_id} not found")
+    _datasets[dataset_id] = df
