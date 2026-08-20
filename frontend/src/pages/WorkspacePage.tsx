@@ -20,6 +20,7 @@ import {
   Loader2,
   FileText,
 } from "lucide-react"
+import DataCleaningPanel from "@/components/workspace/DataCleaningPanel"
 
 type UploadResponse = {
   dataset_id: string
@@ -53,10 +54,13 @@ async function uploadFile(file: File): Promise<UploadResponse> {
   const formData = new FormData()
   formData.append("file", file)
 
-  const res = await fetch("http://127.0.0.1:8000/upload", {
-    method: "POST",
-    body: formData,
-  })
+  const res = await fetch(
+    "http://127.0.0.1:8000/upload",
+    {
+      method: "POST",
+      body: formData,
+    }
+  )
 
   if (!res.ok) {
     const errorBody = await res.json()
@@ -273,6 +277,13 @@ export default function WorkspacePage() {
               </Table>
             </CardContent>
           </Card>
+
+          {/* Data Cleaning */}
+          <DataCleaningPanel
+            datasetId={uploadMutation.data!.dataset_id}
+            columnsInfo={inspectionQuery.data.columns_info}
+            onDataChanged={() => inspectionQuery.refetch()}
+          />
         </>
       )}
     </div>
