@@ -19,6 +19,11 @@ from app.services.cleaning import (
     handle_missing_values,
 )
 
+from app.services.eda import (
+    numerical_summary,
+    categorical_summary,
+    correlation_matrix,
+)
 
 app = FastAPI(title="DataForge AI API")
 
@@ -288,4 +293,16 @@ def clean_handle_missing(
         "missing_before": before_missing,
         "missing_after": after_missing,
         "rows_remaining": cleaned.shape[0],
+    }
+@app.get("/dataset/{dataset_id}/eda")
+def get_eda(dataset_id: str):
+    try:
+        df = get_dataset(dataset_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Dataset not found. It may have expired or the server restarted.")
+
+    return {
+        "numerical_summary": numerical_summary(df),
+        "categorical_summary": categorical_summary(df),
+        "correlation": correlation_matrix(df),
     }
