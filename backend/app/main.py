@@ -1,4 +1,6 @@
-import pandas as pd
+import pandas as pd 
+from app.services.recommendations import recommend_visualizations
+from app.services.charts import histogram_data, bar_chart_data, scatter_data, box_plot_data
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -306,3 +308,45 @@ def get_eda(dataset_id: str):
         "categorical_summary": categorical_summary(df),
         "correlation": correlation_matrix(df),
     }
+@app.get("/dataset/{dataset_id}/visualizations/recommendations")
+def get_recommendations(dataset_id: str):
+    try:
+        df = get_dataset(dataset_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Dataset not found.")
+    return {"recommendations": recommend_visualizations(df)}
+
+
+@app.get("/dataset/{dataset_id}/chart")
+def get_chart_data(
+    dataset_id: str,
+    chart_type: str,
+    x: str,
+    y: str | None = None,
+):
+    try:
+        df = get_dataset(dataset_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Dataset not found.")
+
+    if x not in df.columns:
+        raise HTTPException(status_code=400, detail=f"Column '{x}' does not exist.")
+
+    if chart_type == "histogram":
+        return histogram_data(df, x)
+
+    elif chart_type == "bar":
+        return bar_chart_data(df, x)
+
+    elif chart_type == "scatter":
+        if not y or y not in df.columns:
+            raise HTTPException(status_code=400, detail="A valid 'y' column is required for scatter plots.")
+        return scatter_data(df, x, y)
+
+    elif chart_type == "box":
+        if not y or y not in df.columns:
+            raise HTTPException(status_code=400, detail="A valid 'y' column is required for box plots.")
+        return box_plot_data(df, x, y)
+
+    else:
+        raise HTTPException(status_code=400, detail=f"Unsupported chart type: '{chart_type}'.")
