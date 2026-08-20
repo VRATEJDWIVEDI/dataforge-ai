@@ -1,3 +1,4 @@
+import EdaPanel from "@/components/workspace/EdaPanel"
 import {
   Table,
   TableBody,
@@ -284,6 +285,7 @@ export default function WorkspacePage() {
             columnsInfo={inspectionQuery.data.columns_info}
             onDataChanged={() => inspectionQuery.refetch()}
           />
+          <EdaPanel datasetId={uploadMutation.data!.dataset_id} />
         </>
       )}
     </div>
