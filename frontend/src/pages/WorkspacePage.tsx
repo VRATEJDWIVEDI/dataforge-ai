@@ -1,3 +1,4 @@
+import VisualizationsPanel from "@/components/workspace/VisualizationsPanel"
 import EdaPanel from "@/components/workspace/EdaPanel"
 import {
   Table,
@@ -278,7 +279,9 @@ export default function WorkspacePage() {
               </Table>
             </CardContent>
           </Card>
-
+          <VisualizationsPanel
+            datasetId={uploadMutation.data!.dataset_id}
+            columnsInfo={inspectionQuery.data.columns_info} />
           {/* Data Cleaning */}
           <DataCleaningPanel
             datasetId={uploadMutation.data!.dataset_id}
