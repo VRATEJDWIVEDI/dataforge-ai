@@ -1,3 +1,4 @@
+import ModelTrainingPanel from "@/components/workspace/ModelTrainingPanel"
 import { useState } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 
@@ -360,37 +361,32 @@ export default function WorkspacePage() {
             }
           />
 
-          {/* Target Selector */}
-          <TargetSelector
-            datasetId={
-              uploadMutation.data!.dataset_id
-            }
-            columnsInfo={
-              inspectionQuery.data.columns_info
-            }
-            onTargetSelected={(
-              column,
-              problemType
-            ) =>
-              setTarget({
-                column,
-                problemType,
-              })
-            }
-          />
+{/* Target Selector */}
+<TargetSelector
+  datasetId={uploadMutation.data!.dataset_id}
+  columnsInfo={inspectionQuery.data.columns_info}
+  onTargetSelected={(column, problemType) =>
+    setTarget({
+      column,
+      problemType,
+    })
+  }
+/>
 
-          {/* Data Cleaning */}
-          <DataCleaningPanel
-            datasetId={
-              uploadMutation.data!.dataset_id
-            }
-            columnsInfo={
-              inspectionQuery.data.columns_info
-            }
-            onDataChanged={() =>
-              inspectionQuery.refetch()
-            }
-          />
+{/* Model Training */}
+{target && target.problemType === "classification" && (
+  <ModelTrainingPanel
+    datasetId={uploadMutation.data!.dataset_id}
+    targetColumn={target.column}
+  />
+)}
+
+{/* Data Cleaning */}
+<DataCleaningPanel
+  datasetId={uploadMutation.data!.dataset_id}
+  columnsInfo={inspectionQuery.data.columns_info}
+  onDataChanged={() => inspectionQuery.refetch()}
+/>
 
           {/* EDA */}
           <EdaPanel
