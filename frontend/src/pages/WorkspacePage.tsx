@@ -1,5 +1,11 @@
+import { useState } from "react"
+import { useMutation, useQuery } from "@tanstack/react-query"
+
 import VisualizationsPanel from "@/components/workspace/VisualizationsPanel"
 import EdaPanel from "@/components/workspace/EdaPanel"
+import DataCleaningPanel from "@/components/workspace/DataCleaningPanel"
+import TargetSelector from "@/components/workspace/TargetSelector"
+
 import {
   Table,
   TableBody,
@@ -8,21 +14,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { useState } from "react"
-import { useMutation, useQuery } from "@tanstack/react-query"
+
 import { Button } from "@/components/ui/button"
+
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+
 import {
   UploadCloud,
   Loader2,
   FileText,
 } from "lucide-react"
-import DataCleaningPanel from "@/components/workspace/DataCleaningPanel"
 
 type UploadResponse = {
   dataset_id: string
@@ -54,6 +60,7 @@ type InspectionResponse = {
 
 async function uploadFile(file: File): Promise<UploadResponse> {
   const formData = new FormData()
+
   formData.append("file", file)
 
   const res = await fetch(
@@ -66,7 +73,10 @@ async function uploadFile(file: File): Promise<UploadResponse> {
 
   if (!res.ok) {
     const errorBody = await res.json()
-    throw new Error(errorBody.detail || "Upload failed")
+
+    throw new Error(
+      errorBody.detail || "Upload failed"
+    )
   }
 
   return res.json()
@@ -80,24 +90,41 @@ async function fetchInspection(
   )
 
   if (!res.ok) {
-    throw new Error("Failed to load dataset inspection")
+    throw new Error(
+      "Failed to load dataset inspection"
+    )
   }
 
   return res.json()
 }
 
 export default function WorkspacePage() {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [selectedFile, setSelectedFile] =
+    useState<File | null>(null)
+
+  // Target selected by the user
+  const [target, setTarget] = useState<{
+    column: string
+    problemType: "classification" | "regression"
+  } | null>(null)
 
   const uploadMutation = useMutation({
     mutationFn: uploadFile,
   })
 
   const inspectionQuery = useQuery({
-    queryKey: ["inspection", uploadMutation.data?.dataset_id],
+    queryKey: [
+      "inspection",
+      uploadMutation.data?.dataset_id,
+    ],
+
     queryFn: () =>
-      fetchInspection(uploadMutation.data!.dataset_id),
-    enabled: !!uploadMutation.data?.dataset_id,
+      fetchInspection(
+        uploadMutation.data!.dataset_id
+      ),
+
+    enabled:
+      !!uploadMutation.data?.dataset_id,
   })
 
   function handleFileChange(
@@ -107,12 +134,17 @@ export default function WorkspacePage() {
 
     if (file) {
       setSelectedFile(file)
+
+      // Reset target when a new dataset is uploaded
+      setTarget(null)
+
       uploadMutation.mutate(file)
     }
   }
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
+
       <h1 className="text-2xl font-semibold tracking-tight">
         Upload Dataset
       </h1>
@@ -121,8 +153,10 @@ export default function WorkspacePage() {
         Upload a CSV file to begin analyzing your data.
       </p>
 
+      {/* Upload Card */}
       <Card className="mt-8">
         <CardContent className="flex flex-col items-center gap-4 py-12">
+
           {!uploadMutation.isPending &&
             !uploadMutation.isSuccess && (
               <>
@@ -148,6 +182,7 @@ export default function WorkspacePage() {
               </>
             )}
 
+          {/* Uploading */}
           {uploadMutation.isPending && (
             <>
               <Loader2 className="size-8 animate-spin text-muted-foreground" />
@@ -158,12 +193,14 @@ export default function WorkspacePage() {
             </>
           )}
 
+          {/* Upload Error */}
           {uploadMutation.isError && (
             <p className="text-sm text-destructive">
               {(uploadMutation.error as Error).message}
             </p>
           )}
 
+          {/* Upload Success */}
           {uploadMutation.isSuccess && (
             <>
               <FileText className="size-10 text-muted-foreground" />
@@ -174,35 +211,45 @@ export default function WorkspacePage() {
                 </p>
 
                 <p className="text-sm text-muted-foreground">
-                  {uploadMutation.data.rows.toLocaleString()} rows ·{" "}
-                  {uploadMutation.data.columns} columns
+                  {uploadMutation.data.rows.toLocaleString()}
+                  {" rows · "}
+                  {uploadMutation.data.columns}
+                  {" columns"}
                 </p>
               </div>
             </>
           )}
+
         </CardContent>
       </Card>
 
+      {/* Dataset Inspection Loading */}
       {inspectionQuery.isLoading && (
         <p className="mt-6 text-sm text-muted-foreground">
           Analyzing dataset...
         </p>
       )}
 
+      {/* Dataset Results */}
       {inspectionQuery.data && (
         <>
+
           {/* Dataset Health */}
           <Card className="mt-6">
             <CardHeader>
-              <CardTitle>Dataset Health</CardTitle>
+              <CardTitle>
+                Dataset Health
+              </CardTitle>
             </CardHeader>
 
             <CardContent>
               <dl className="grid grid-cols-2 gap-y-3 sm:grid-cols-4">
+
                 <div>
                   <dt className="text-xs text-muted-foreground">
                     Rows
                   </dt>
+
                   <dd className="text-lg font-semibold">
                     {inspectionQuery.data.rows.toLocaleString()}
                   </dd>
@@ -212,6 +259,7 @@ export default function WorkspacePage() {
                   <dt className="text-xs text-muted-foreground">
                     Columns
                   </dt>
+
                   <dd className="text-lg font-semibold">
                     {inspectionQuery.data.columns}
                   </dd>
@@ -221,6 +269,7 @@ export default function WorkspacePage() {
                   <dt className="text-xs text-muted-foreground">
                     Missing
                   </dt>
+
                   <dd className="text-lg font-semibold">
                     {inspectionQuery.data.missing_percentage}%
                   </dd>
@@ -230,10 +279,12 @@ export default function WorkspacePage() {
                   <dt className="text-xs text-muted-foreground">
                     Duplicates
                   </dt>
+
                   <dd className="text-lg font-semibold">
                     {inspectionQuery.data.duplicate_rows}
                   </dd>
                 </div>
+
               </dl>
             </CardContent>
           </Card>
@@ -241,56 +292,147 @@ export default function WorkspacePage() {
           {/* Columns */}
           <Card className="mt-6">
             <CardHeader>
-              <CardTitle>Columns</CardTitle>
+              <CardTitle>
+                Columns
+              </CardTitle>
             </CardHeader>
 
             <CardContent>
               <Table>
+
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Column</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Missing</TableHead>
-                    <TableHead>Unique Values</TableHead>
+                    <TableHead>
+                      Column
+                    </TableHead>
+
+                    <TableHead>
+                      Type
+                    </TableHead>
+
+                    <TableHead>
+                      Missing
+                    </TableHead>
+
+                    <TableHead>
+                      Unique Values
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
 
                 <TableBody>
-                  {inspectionQuery.data.columns_info.map((col) => (
-                    <TableRow key={col.name}>
-                      <TableCell className="font-medium">
-                        {col.name}
-                      </TableCell>
+                  {inspectionQuery.data.columns_info.map(
+                    (col) => (
+                      <TableRow key={col.name}>
 
-                      <TableCell className="text-muted-foreground">
-                        {col.dtype}
-                      </TableCell>
+                        <TableCell className="font-medium">
+                          {col.name}
+                        </TableCell>
 
-                      <TableCell className="text-muted-foreground">
-                        {col.missing_percentage}%
-                      </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {col.dtype}
+                        </TableCell>
 
-                      <TableCell className="text-muted-foreground">
-                        {col.unique_values}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        <TableCell className="text-muted-foreground">
+                          {col.missing_percentage}%
+                        </TableCell>
+
+                        <TableCell className="text-muted-foreground">
+                          {col.unique_values}
+                        </TableCell>
+
+                      </TableRow>
+                    )
+                  )}
                 </TableBody>
+
               </Table>
             </CardContent>
           </Card>
+
+          {/* Visualization Recommendations */}
           <VisualizationsPanel
-            datasetId={uploadMutation.data!.dataset_id}
-            columnsInfo={inspectionQuery.data.columns_info} />
+            datasetId={
+              uploadMutation.data!.dataset_id
+            }
+            columnsInfo={
+              inspectionQuery.data.columns_info
+            }
+          />
+
+          {/* Target Selector */}
+          <TargetSelector
+            datasetId={
+              uploadMutation.data!.dataset_id
+            }
+            columnsInfo={
+              inspectionQuery.data.columns_info
+            }
+            onTargetSelected={(
+              column,
+              problemType
+            ) =>
+              setTarget({
+                column,
+                problemType,
+              })
+            }
+          />
+
           {/* Data Cleaning */}
           <DataCleaningPanel
-            datasetId={uploadMutation.data!.dataset_id}
-            columnsInfo={inspectionQuery.data.columns_info}
-            onDataChanged={() => inspectionQuery.refetch()}
+            datasetId={
+              uploadMutation.data!.dataset_id
+            }
+            columnsInfo={
+              inspectionQuery.data.columns_info
+            }
+            onDataChanged={() =>
+              inspectionQuery.refetch()
+            }
           />
-          <EdaPanel datasetId={uploadMutation.data!.dataset_id} />
+
+          {/* EDA */}
+          <EdaPanel
+            datasetId={
+              uploadMutation.data!.dataset_id
+            }
+          />
+
+          {/* Selected Target */}
+          {target && (
+            <Card className="mt-6">
+
+              <CardHeader>
+                <CardTitle>
+                  Selected Target
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent>
+
+                <p className="text-sm">
+                  Target column:{" "}
+                  <strong>
+                    {target.column}
+                  </strong>
+                </p>
+
+                <p className="text-sm text-muted-foreground">
+                  Problem type:{" "}
+                  <strong>
+                    {target.problemType}
+                  </strong>
+                </p>
+
+              </CardContent>
+
+            </Card>
+          )}
+
         </>
       )}
+
     </div>
   )
 }
