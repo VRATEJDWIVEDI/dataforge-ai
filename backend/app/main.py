@@ -1,6 +1,6 @@
-
+from app.services.feature_selection import get_feature_suggestions
 import pandas as pd
-
+from app.services.classification import train_classification_models
 from app.services.recommendations import recommend_visualizations
 from app.services.charts import (
     histogram_data,
@@ -67,6 +67,11 @@ class HandleMissingRequest(BaseModel):
     column: str
     strategy: str
     custom_value: str | None = None
+
+
+class TrainClassificationRequest(BaseModel):
+    target_column: str
+    excluded_columns: list[str] = []
 
 
 # -------------------------------------------------------------------
@@ -463,3 +468,42 @@ def get_chart_data(
             detail=f"Unsupported chart type: '{chart_type}'.",
         )
 
+@app.post("/dataset/{dataset_id}/train/classification")
+def train_classification(
+    dataset_id: str,
+    request: TrainClassificationRequest,
+):
+    try:
+        df = get_dataset(dataset_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Dataset not found.")
+
+    if request.target_column not in df.columns:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Column '{request.target_column}' does not exist.",
+        )
+
+    try:
+        return train_classification_models(
+            df,
+            request.target_column,
+            request.excluded_columns,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Training failed: {str(e)}",
+        )
+    
+@app.get("/dataset/{dataset_id}/feature-suggestions")
+def feature_suggestions(dataset_id: str, target_column: str):
+    try:
+        df = get_dataset(dataset_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Dataset not found.")
+
+    try:
+        return get_feature_suggestions(df, target_column)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
