@@ -1,9 +1,19 @@
-import pandas as pd 
+
+import pandas as pd
+
 from app.services.recommendations import recommend_visualizations
-from app.services.charts import histogram_data, bar_chart_data, scatter_data, box_plot_data
+from app.services.charts import (
+    histogram_data,
+    bar_chart_data,
+    scatter_data,
+    box_plot_data,
+)
+
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+from app.services.target_recommendation import recommend_problem_type
 
 from app.services.dataset_store import (
     store_dataset,
@@ -26,6 +36,7 @@ from app.services.eda import (
     categorical_summary,
     correlation_matrix,
 )
+
 
 app = FastAPI(title="DataForge AI API")
 
@@ -73,6 +84,7 @@ def read_root():
 
 @app.post("/upload")
 async def upload_csv(file: UploadFile = File(...)):
+
     if not file.filename.endswith(".csv"):
         raise HTTPException(
             status_code=400,
@@ -110,8 +122,10 @@ async def upload_csv(file: UploadFile = File(...)):
 
 @app.get("/dataset/{dataset_id}/inspect")
 def inspect(dataset_id: str):
+
     try:
         df = get_dataset(dataset_id)
+
     except KeyError:
         raise HTTPException(
             status_code=404,
@@ -127,8 +141,10 @@ def inspect(dataset_id: str):
 
 @app.post("/dataset/{dataset_id}/clean/remove-duplicates")
 def clean_remove_duplicates(dataset_id: str):
+
     try:
         df = get_dataset(dataset_id)
+
     except KeyError:
         raise HTTPException(
             status_code=404,
@@ -157,8 +173,10 @@ def clean_drop_columns(
     dataset_id: str,
     request: DropColumnsRequest,
 ):
+
     try:
         df = get_dataset(dataset_id)
+
     except KeyError:
         raise HTTPException(
             status_code=404,
@@ -169,6 +187,7 @@ def clean_drop_columns(
 
     try:
         cleaned = drop_columns(df, request.columns)
+
     except ValueError as e:
         raise HTTPException(
             status_code=400,
@@ -193,8 +212,10 @@ def clean_rename_column(
     dataset_id: str,
     request: RenameColumnRequest,
 ):
+
     try:
         df = get_dataset(dataset_id)
+
     except KeyError:
         raise HTTPException(
             status_code=404,
@@ -207,6 +228,7 @@ def clean_rename_column(
             request.old_name,
             request.new_name,
         )
+
     except ValueError as e:
         raise HTTPException(
             status_code=400,
@@ -226,8 +248,10 @@ def clean_rename_column(
 
 @app.post("/dataset/{dataset_id}/clean/remove-constant-columns")
 def clean_remove_constant_columns(dataset_id: str):
+
     try:
         df = get_dataset(dataset_id)
+
     except KeyError:
         raise HTTPException(
             status_code=404,
@@ -256,8 +280,10 @@ def clean_handle_missing(
     dataset_id: str,
     request: HandleMissingRequest,
 ):
+
     try:
         df = get_dataset(dataset_id)
+
     except KeyError:
         raise HTTPException(
             status_code=404,
@@ -277,6 +303,7 @@ def clean_handle_missing(
             request.strategy,
             request.custom_value,
         )
+
     except ValueError as e:
         raise HTTPException(
             status_code=400,
@@ -296,26 +323,87 @@ def clean_handle_missing(
         "missing_after": after_missing,
         "rows_remaining": cleaned.shape[0],
     }
+
+
+# -------------------------------------------------------------------
+# EDA
+# -------------------------------------------------------------------
+
 @app.get("/dataset/{dataset_id}/eda")
 def get_eda(dataset_id: str):
+
     try:
         df = get_dataset(dataset_id)
+
     except KeyError:
-        raise HTTPException(status_code=404, detail="Dataset not found. It may have expired or the server restarted.")
+        raise HTTPException(
+            status_code=404,
+            detail="Dataset not found. It may have expired or the server restarted.",
+        )
 
     return {
         "numerical_summary": numerical_summary(df),
         "categorical_summary": categorical_summary(df),
         "correlation": correlation_matrix(df),
     }
+
+
+# -------------------------------------------------------------------
+# Visualization Recommendations
+# -------------------------------------------------------------------
+
 @app.get("/dataset/{dataset_id}/visualizations/recommendations")
 def get_recommendations(dataset_id: str):
+
     try:
         df = get_dataset(dataset_id)
-    except KeyError:
-        raise HTTPException(status_code=404, detail="Dataset not found.")
-    return {"recommendations": recommend_visualizations(df)}
 
+    except KeyError:
+        raise HTTPException(
+            status_code=404,
+            detail="Dataset not found.",
+        )
+
+    return {
+        "recommendations": recommend_visualizations(df)
+    }
+
+
+# -------------------------------------------------------------------
+# Target / Problem Type Recommendation
+# -------------------------------------------------------------------
+
+@app.get("/dataset/{dataset_id}/target-recommendation")
+def get_target_recommendation(
+    dataset_id: str,
+    target_column: str,
+):
+
+    try:
+        df = get_dataset(dataset_id)
+
+    except KeyError:
+        raise HTTPException(
+            status_code=404,
+            detail="Dataset not found.",
+        )
+
+    try:
+        return recommend_problem_type(
+            df,
+            target_column,
+        )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e),
+        )
+
+
+# -------------------------------------------------------------------
+# Chart Data
+# -------------------------------------------------------------------
 
 @app.get("/dataset/{dataset_id}/chart")
 def get_chart_data(
@@ -324,29 +412,54 @@ def get_chart_data(
     x: str,
     y: str | None = None,
 ):
+
     try:
         df = get_dataset(dataset_id)
+
     except KeyError:
-        raise HTTPException(status_code=404, detail="Dataset not found.")
+        raise HTTPException(
+            status_code=404,
+            detail="Dataset not found.",
+        )
 
     if x not in df.columns:
-        raise HTTPException(status_code=400, detail=f"Column '{x}' does not exist.")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Column '{x}' does not exist.",
+        )
 
     if chart_type == "histogram":
+
         return histogram_data(df, x)
 
     elif chart_type == "bar":
+
         return bar_chart_data(df, x)
 
     elif chart_type == "scatter":
+
         if not y or y not in df.columns:
-            raise HTTPException(status_code=400, detail="A valid 'y' column is required for scatter plots.")
+            raise HTTPException(
+                status_code=400,
+                detail="A valid 'y' column is required for scatter plots.",
+            )
+
         return scatter_data(df, x, y)
 
     elif chart_type == "box":
+
         if not y or y not in df.columns:
-            raise HTTPException(status_code=400, detail="A valid 'y' column is required for box plots.")
+            raise HTTPException(
+                status_code=400,
+                detail="A valid 'y' column is required for box plots.",
+            )
+
         return box_plot_data(df, x, y)
 
     else:
-        raise HTTPException(status_code=400, detail=f"Unsupported chart type: '{chart_type}'.")
+
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported chart type: '{chart_type}'.",
+        )
+
